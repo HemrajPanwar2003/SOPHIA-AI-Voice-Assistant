@@ -8,8 +8,7 @@ $(document).ready(function() {
         out:{
            effect:"bounceOut",
         },
-
-    });
+      });
 
 
     var siriWave = new SiriWave({
@@ -22,17 +21,23 @@ $(document).ready(function() {
     autostart:true
     });
 
-     $('.siri-message').textillate({
+      $('.siri-message').textillate({
         loop:true,
         sync:true,
         in:{
            effect:"fadeInUp",
-            sync:true,
+           sync:true,
         },
         out:{
            effect:"fadeOutUp",
-             sync:true,
+           sync:true,
         },
+       });
 
-    });
+   $("#micBtn").click(function(){
+      $("#Ovel").attr("hidden", true);
+      $("#SiriWave").attr("hidden", false);
+      eel.playClickSound();
+   });
+
 });
