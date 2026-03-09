@@ -4,11 +4,11 @@ import eel
 
 
 def speak(text):
-    engine = pyttsx3.init()
+    engine = pyttsx3.init("sapi5")
     voices = engine.getProperty("voices")
-    print(voices)
     engine.setProperty("voice", voices[0].id)
-    engine.setProperty("rate", 170)
+    engine.setProperty("rate", 174)
+    eel.DisplayMessage(text)
     engine.say(text)
     engine.runAndWait()
 
@@ -26,9 +26,8 @@ def takeCommand():
     try:
         print("Recognizing...")
         eel.DisplayMessage("Recognizing...")
-        query = r.recognize_google(audio, language="en")
+        query = r.recognize_google(audio, language="en-in")
         print(f"User said: {query}")
-        speak(query)
         eel.DisplayMessage(query)
         eel.ShowHood()
 
@@ -37,8 +36,3 @@ def takeCommand():
         return ""
 
     return query.lower()
-
-
-# text = takeCommand()
-
-# speak(text)
