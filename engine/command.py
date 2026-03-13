@@ -1,3 +1,5 @@
+from datetime import time
+
 import pyttsx3
 import speech_recognition as sr
 import eel
@@ -13,7 +15,6 @@ def speak(text):
     engine.runAndWait()
 
 
-@eel.expose
 def takeCommand():
     r = sr.Recognizer()
     with sr.Microphone() as source:
@@ -29,10 +30,37 @@ def takeCommand():
         query = r.recognize_google(audio, language="en-in")
         print(f"User said: {query}")
         eel.DisplayMessage(query)
-        eel.ShowHood()
+        time.sleep(2)
 
-    except Exception as e:
-        print(e)
+    except Exception as e:  # noqa: F841
         return ""
 
     return query.lower()
+
+
+@eel.expose
+def allCommands():
+
+    query = takeCommand()
+    print(query)
+
+    if not query:
+        return
+
+    query = query.lower()
+
+    if "open" in query:
+        from engine.features import openCommand
+
+        openCommand(query)
+
+    elif "youtube" in query:
+        from engine.features import PlayYoutube
+
+        PlayYoutube(query)
+
+    else:
+        print("Command not recognized")
+
+
+eel.ShowHood()

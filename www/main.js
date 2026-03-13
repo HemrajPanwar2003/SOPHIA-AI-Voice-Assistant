@@ -38,7 +38,7 @@ $(document).ready(function() {
       $("#Ovel").attr("hidden", true);
       $("#SiriWave").attr("hidden", false);
       eel.playClickSound();
-      eel.takeCommand()();
+      eel.allCommands()();
 
    });
 
