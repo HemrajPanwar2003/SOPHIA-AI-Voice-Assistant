@@ -1,12 +1,16 @@
 import os
 import re
-
+import sqlite3
+import webbrowser
 from playsound import playsound
 import eel
 
 from engine.command import speak
 from engine.config import ASSISTANT_NAME
 import pywhatkit as kit
+
+con = sqlite3.connect("sophia.db")
+cursor = con.cursor()
 
 
 # Sound function
@@ -27,24 +31,84 @@ def openCommand(query):
     query = query.replace("open", "")
     query.lower()
 
-    if query != "":
-        speak("Opening" + query)
-        os.system("start" + query)
+    app_name = query.strip()
 
-    else:
-        speak("not found")
+    if app_name != "":
+        try:
+            cursor.execute(
+                "SELECT path FROM sys_command WHERE name IN (?)", (app_name,)
+            )
+            results = cursor.fetchall()
+
+            if len(results) != 0:
+                speak("Opening " + query)
+                os.startfile(results[0][0])
+
+            elif len(results) == 0:
+                cursor.execute(
+                    "SELECT url FROM web_command WHERE name IN (?)", (app_name,)
+                )
+                results = cursor.fetchall()
+
+                if len(results) != 0:
+                    speak("Opening " + query)
+                    webbrowser.open(results[0][0])
+
+                else:
+                    speak("Opening " + query)
+                    try:
+                        os.system("start " + query)
+                    except sqlite3.Error:
+                        speak("not found")
+        except ValueError:
+            speak("some thing went wrong")
+        finally:
+            cursor.close()
 
 
 def PlayYoutube(query):
-    search_term = extract_yt_term(query)
-    speak("Playing " + search_term + " on YouTube")
-    kit.playonyt(search_term)
+    try:
+        search_term = extract_yt_term(query)
+        if not search_term:
+            speak("No search term found for YouTube")
+            return False
+
+        speak(f"Playing {search_term} on YouTube")
+        eel.DisplayMessage(f"🎵 Playing: {search_term}")
+
+        # Use pywhatkit to play on YouTube
+        kit.playonyt(search_term)
+        return True
+
+    except Exception as e:
+        speak("Could not play on YouTube")
+        print(f"❌ YouTube error: {e}")
+        eel.DisplayMessage(f"❌ YouTube error: {str(e)}")
+        return False
 
 
 def extract_yt_term(command):
+    """Improved regex patterns for YouTube search extraction"""
+    command = str(command).lower()
 
-    pattern = r"play\s+(.*?)\s+on\s+youtube"
+    # Multiple patterns for different ways users might speak
+    patterns = [
+        r"play\s+(.+?)(?:\s+on\s+youtube|\s+on\s+yt)?$",
+        r"(?:youtube|yt)\s+(.+?)$",
+        r"play\s+(.+?)(?=\s|$)",
+        r"open\s+youtube\s+(.+?)$",
+    ]
 
-    match = re.search(pattern, command, re.IGNORECASE)
+    for pattern in patterns:
+        match = re.search(pattern, command, re.IGNORECASE)
+        if match:
+            term = match.group(1).strip()
+            # Clean up the term
+            term = re.sub(r"(music|song|video)\s+", "", term, flags=re.IGNORECASE)
+            return term if len(term) > 1 else None
 
-    return match.group(1) if match else None
+    # Fallback: everything after "play"
+    if "play" in command:
+        return command.split("play")[-1].strip()
+
+    return None

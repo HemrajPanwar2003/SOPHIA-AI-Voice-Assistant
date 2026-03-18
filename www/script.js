@@ -25,6 +25,10 @@ function canvasApp() {
 		return;
 	}
 
+	document.getElementById("micBtn").addEventListener("click", () => {
+    eel.allCommands()();
+});
+
 	var theCanvas = document.getElementById("canvasOne");
 	var context = theCanvas.getContext("2d");
 

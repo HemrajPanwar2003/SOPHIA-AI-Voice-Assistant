@@ -1,1 +1,0 @@
-os.system('start chrome.exe --app="http://localhost:8000/index.html"')

@@ -1,5 +1,4 @@
 from datetime import time
-
 import pyttsx3
 import speech_recognition as sr
 import eel
@@ -32,8 +31,9 @@ def takeCommand():
         eel.DisplayMessage(query)
         time.sleep(2)
 
-    except Exception as e:  # noqa: F841
-        return ""
+    except Exception as e:
+        print(f"Speech error: {e}")
+        eel.DisplayMessage(f"Speech error: {str(e)}")
 
     return query.lower()
 
@@ -54,13 +54,16 @@ def allCommands():
 
         openCommand(query)
 
-    elif "youtube" in query:
-        from engine.features import PlayYoutube
+    elif "youtube" in query or "play" in query:
+        try:
+            from engine.features import PlayYoutube
 
-        PlayYoutube(query)
+            PlayYoutube(query)
+            speak("Playing on YouTube")
+        except ImportError:
+            speak("YouTube module not found")
 
     else:
-        print("Command not recognized")
+        speak("Sorry, I didn't understand that command")
 
-
-eel.ShowHood()
+    eel.ShowHood()
