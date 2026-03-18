@@ -1,1 +1,1 @@
-ASSISTANT_NAME = "Sophia"
+ASSISTANT_NAME = "Krishna"

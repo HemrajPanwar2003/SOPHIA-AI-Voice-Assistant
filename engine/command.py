@@ -40,9 +40,13 @@ def takeCommand():
 
 @eel.expose
 def allCommands():
-
-    query = takeCommand()
-    print(query)
+    try:
+        query = takeCommand()
+        print(query)
+    except Exception as e:
+        print(f"Error in allCommands: {e}")
+        eel.DisplayMessage(f"Error: {str(e)}")
+        return
 
     if not query:
         return

@@ -5,7 +5,10 @@ from engine.command import takeCommand
 
 takeCommand
 
-eel.init("www")
+
+def start():
+    eel.init("www")
+
 
 playAssistantSound()
 

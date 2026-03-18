@@ -1,12 +1,12 @@
 import sqlite3
 
-con = sqlite3.connect("sophia.db")
+con = sqlite3.connect("Krishna.db")
 cursor = con.cursor()
 
 query = "CREATE TABLE IF NOT EXISTS sys_command(id INTEGER PRIMARY KEY,name VARCHAR(100),path VARCHAR(1000))"
 cursor.execute(query)
 
-# query = "INSERT INTO sys_command VALUES (NULL,'onenote','C:\\Program Files\\Microsoft Office\\root\\Office16\\ONENOTE.EXE')"
+# query = "INSERT INTO sys_command VALUES (NULL,'one note','C:\\Program Files\\Microsoft Office\\root\\Office16\\ONENOTE.EXE')"
 # cursor.execute(query)
 
 # con.commit()

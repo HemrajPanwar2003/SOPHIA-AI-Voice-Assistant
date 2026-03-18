@@ -42,4 +42,20 @@ $(document).ready(function() {
 
    });
 
+   function doc_keyUp(e) {
+
+    // Check Ctrl + J (Windows/Linux) or Cmd + J (Mac)
+    if ((e.key === 'j' || e.key === 'J') && (e.ctrlKey || e.metaKey)) {
+
+        eel.playAssistantSound();
+
+        $("#Oval").attr("hidden", true);
+        $("#SiriWave").attr("hidden", false);
+
+        eel.allCommands();  // ✅ fixed
+    }
+}
+
+document.addEventListener('keyup', doc_keyUp, false);
+
 });

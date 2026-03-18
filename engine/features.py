@@ -1,15 +1,19 @@
+from datetime import time
 import os
-import re
 import sqlite3
+import struct
 import webbrowser
 from playsound import playsound
 import eel
-
+import pvporcupine
+import pyaudio
 from engine.command import speak
 from engine.config import ASSISTANT_NAME
 import pywhatkit as kit
 
-con = sqlite3.connect("sophia.db")
+from engine.helper import extract_yt_term
+
+con = sqlite3.connect("Krishna.db")
 cursor = con.cursor()
 
 
@@ -87,28 +91,46 @@ def PlayYoutube(query):
         return False
 
 
-def extract_yt_term(command):
-    """Improved regex patterns for YouTube search extraction"""
-    command = str(command).lower()
+def hotword():
+    porcupine = None
+    paud = None
+    audio_stream = None
+    try:
+        # pre trained keywords
+        porcupine = pvporcupine.create(keywords=["jarvis", "alexa"])
+        paud = pyaudio.PyAudio()
+        audio_stream = paud.open(
+            rate=porcupine.sample_rate,
+            channels=1,
+            format=pyaudio.paInt16,
+            input=True,
+            frames_per_buffer=porcupine.frame_length,
+        )
 
-    # Multiple patterns for different ways users might speak
-    patterns = [
-        r"play\s+(.+?)(?:\s+on\s+youtube|\s+on\s+yt)?$",
-        r"(?:youtube|yt)\s+(.+?)$",
-        r"play\s+(.+?)(?=\s|$)",
-        r"open\s+youtube\s+(.+?)$",
-    ]
+        # loop for streaming
+        while True:
+            keyword = audio_stream.read(porcupine.frame_length)
+            keyword = struct.unpack_from("h" * porcupine.frame_length, keyword)
 
-    for pattern in patterns:
-        match = re.search(pattern, command, re.IGNORECASE)
-        if match:
-            term = match.group(1).strip()
-            # Clean up the term
-            term = re.sub(r"(music|song|video)\s+", "", term, flags=re.IGNORECASE)
-            return term if len(term) > 1 else None
+            # processing keyword comes from mic
+            keyword_index = porcupine.process(keyword)
 
-    # Fallback: everything after "play"
-    if "play" in command:
-        return command.split("play")[-1].strip()
+            # checking first keyword detetcted for not
+            if keyword_index >= 0:
+                print("hotword detected")
 
-    return None
+                # pressing shorcut key win+j
+                import pyautogui as autogui
+
+                autogui.keyDown("win")
+                autogui.press("j")
+                time.sleep(2)
+                autogui.keyUp("win")
+
+    except:  # noqa: E722
+        if porcupine is not None:
+            porcupine.delete()
+        if audio_stream is not None:
+            audio_stream.close()
+        if paud is not None:
+            paud.terminate()
