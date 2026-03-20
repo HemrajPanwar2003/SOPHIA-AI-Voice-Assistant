@@ -1,17 +1,20 @@
 from datetime import time
 import os
+from shlex import quote
 import sqlite3
 import struct
+import subprocess
 import webbrowser
 from playsound import playsound
 import eel
 import pvporcupine
 import pyaudio
+import pyautogui
 from engine.command import speak
 from engine.config import ASSISTANT_NAME
 import pywhatkit as kit
 
-from engine.helper import extract_yt_term
+from engine.helper import extract_yt_term, remove_words
 
 con = sqlite3.connect("Krishna.db")
 cursor = con.cursor()
@@ -97,7 +100,7 @@ def hotword():
     audio_stream = None
     try:
         # pre trained keywords
-        porcupine = pvporcupine.create(keywords=["jarvis", "alexa"])
+        porcupine = pvporcupine.create(keywords=["krishna", "alexa"])
         paud = pyaudio.PyAudio()
         audio_stream = paud.open(
             rate=porcupine.sample_rate,
@@ -134,3 +137,96 @@ def hotword():
             audio_stream.close()
         if paud is not None:
             paud.terminate()
+
+
+def findContact(query):
+    from db import get_connection
+
+    words_to_remove = [
+        ASSISTANT_NAME,
+        "make",
+        "a",
+        "to",
+        "phone",
+        "call",
+        "send",
+        "message",
+        "whatsapp",
+        "video",
+    ]
+
+    # Clean query
+    query = remove_words(query, words_to_remove)
+
+    try:
+        query = query.strip().lower()
+
+        con, cursor = get_connection()
+
+        cursor.execute(
+            """
+        SELECT name, mobile_no FROM contacts
+        WHERE LOWER(name) LIKE ?
+        """,
+            ("%" + query + "%",),
+        )
+
+        results = cursor.fetchall()
+        con.close()
+
+        # ✅ Check if contact exists
+        if not results:
+            speak("Contact not found")
+            return 0, 0
+
+        name, mobile_number = results[0]
+
+        mobile_number = str(mobile_number).replace(" ", "").replace("-", "")
+
+        # ✅ Add country code if missing
+        if not mobile_number.startswith("+91"):
+            mobile_number = "+91" + mobile_number
+
+        return mobile_number, name
+
+    except Exception as e:
+        print("Error:", e)
+        speak("Error finding contact")
+        return 0, 0
+
+
+def whatsApp(mobile_no, message, flag, name):
+    if flag == "message":
+        target_tab = 12
+        jarvis_message = f"Message sent to {name}"
+
+    elif flag == "call":
+        target_tab = 7
+        message = ""
+        jarvis_message = f"Calling {name}"
+
+    else:
+        target_tab = 6
+        message = ""
+        jarvis_message = f"Starting video call with {name}"
+
+    # Encode message
+    encoded_message = quote(message)
+
+    # WhatsApp URL
+    whatsapp_url = f"whatsapp://send?phone={mobile_no}&text={encoded_message}"
+
+    # Open WhatsApp
+    subprocess.run(f'start "" "{whatsapp_url}"', shell=True)
+
+    # Wait for WhatsApp to load
+    time.sleep(8)
+
+    # Navigate using TAB
+    for _ in range(target_tab):
+        pyautogui.press("tab")
+
+    # Press Enter
+    pyautogui.press("enter")
+
+    speak(jarvis_message)

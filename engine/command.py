@@ -53,21 +53,56 @@ def allCommands():
 
     query = query.lower()
 
-    if "open" in query:
-        from engine.features import openCommand
+    try:
+        # 🔹 OPEN COMMAND
+        if "open" in query:
+            from engine.features import openCommand
 
-        openCommand(query)
+            openCommand(query)
 
-    elif "youtube" in query or "play" in query:
-        try:
+        # 🔹 YOUTUBE
+        elif "youtube" in query or "play" in query:
             from engine.features import PlayYoutube
 
             PlayYoutube(query)
             speak("Playing on YouTube")
-        except ImportError:
-            speak("YouTube module not found")
 
-    else:
-        speak("Sorry, I didn't understand that command")
+        # 🔹 WHATSAPP (MESSAGE / CALL / VIDEO)
+        elif "send message" in query or "phone call" in query or "video call" in query:
+            from engine.features import findContact, whatsApp
 
-    eel.ShowHood()
+            contact_no, name = findContact(query)
+
+            if contact_no != 0:
+                # MESSAGE
+                if "send message" in query:
+                    speak("What message should I send?")
+                    user_message = takeCommand()
+
+                    if not user_message:
+                        speak("Message not received")
+                        return
+
+                    whatsApp(contact_no, user_message, "message", name)
+
+                # CALL
+                elif "phone call" in query:
+                    whatsApp(contact_no, "", "call", name)
+
+                # VIDEO CALL
+                else:
+                    whatsApp(contact_no, "", "video", name)
+
+        # 🔹 UNKNOWN COMMAND
+        else:
+            speak("Sorry, I didn't understand that command")
+            eel.ShowHood()
+
+    except ImportError as e:
+        print(f"Import Error: {e}")
+        speak("Required module not found")
+
+    except Exception as e:
+        print(f"Error: {e}")
+        speak("Something went wrong")
+        eel.ShowHood()

@@ -26,3 +26,19 @@ def extract_yt_term(command):
         return command.split("play")[-1].strip()
 
     return None
+
+
+def remove_words(input_string, words_to_remove):
+    # Convert remove list to set for faster lookup
+    words_to_remove = set(word.lower() for word in words_to_remove)
+
+    # Remove punctuation
+    input_string = re.sub(r"[^\w\s]", "", input_string)
+
+    # Split into words
+    words = input_string.split()
+
+    # Filter words
+    filtered_words = [word for word in words if word.lower() not in words_to_remove]
+
+    return " ".join(filtered_words).strip()
