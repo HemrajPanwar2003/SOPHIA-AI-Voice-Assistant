@@ -1,20 +1,20 @@
+from asyncio import subprocess
 from datetime import time
+from email.quoprimime import quote
 import os
-from shlex import quote
 import sqlite3
 import struct
-import subprocess
 import webbrowser
 from playsound import playsound
 import eel
 import pvporcupine
 import pyaudio
-import pyautogui
+import pyautogui as autogui
 from engine.command import speak
 from engine.config import ASSISTANT_NAME
 import pywhatkit as kit
 
-from engine.helper import extract_yt_term, remove_words
+from engine.helper import extract_yt_term
 
 con = sqlite3.connect("Krishna.db")
 cursor = con.cursor()
@@ -98,9 +98,12 @@ def hotword():
     porcupine = None
     paud = None
     audio_stream = None
+
     try:
-        # pre trained keywords
+        # 🔹 Initialize Porcupine
         porcupine = pvporcupine.create(keywords=["krishna", "alexa"])
+
+        # 🔹 Initialize PyAudio
         paud = pyaudio.PyAudio()
         audio_stream = paud.open(
             rate=porcupine.sample_rate,
@@ -109,124 +112,103 @@ def hotword():
             input=True,
             frames_per_buffer=porcupine.frame_length,
         )
-
-        # loop for streaming
+        # 🔹 Continuous Listening Loop
         while True:
-            keyword = audio_stream.read(porcupine.frame_length)
-            keyword = struct.unpack_from("h" * porcupine.frame_length, keyword)
+            try:
+                pcm = audio_stream.read(
+                    porcupine.frame_length, exception_on_overflow=False
+                )
+                pcm = struct.unpack_from("h" * porcupine.frame_length, pcm)
 
-            # processing keyword comes from mic
-            keyword_index = porcupine.process(keyword)
+                keyword_index = porcupine.process(pcm)
 
-            # checking first keyword detetcted for not
-            if keyword_index >= 0:
-                print("hotword detected")
+                if keyword_index >= 0:
+                    print("🔥 Hotword detected!")
 
-                # pressing shorcut key win+j
-                import pyautogui as autogui
+                    # 🔹 Trigger shortcut (Win + J)
+                    autogui.keyDown("win")
+                    autogui.press("j")
+                    autogui.keyUp("win")
 
-                autogui.keyDown("win")
-                autogui.press("j")
-                time.sleep(2)
-                autogui.keyUp("win")
+                    time.sleep(1)
 
-    except:  # noqa: E722
-        if porcupine is not None:
-            porcupine.delete()
-        if audio_stream is not None:
-            audio_stream.close()
-        if paud is not None:
-            paud.terminate()
+            except Exception as e:
+                print(f"⚠️ Audio read error: {e}")
 
-
-def findContact(query):
-    from db import get_connection
-
-    words_to_remove = [
-        ASSISTANT_NAME,
-        "make",
-        "a",
-        "to",
-        "phone",
-        "call",
-        "send",
-        "message",
-        "whatsapp",
-        "video",
-    ]
-
-    # Clean query
-    query = remove_words(query, words_to_remove)
-
-    try:
-        query = query.strip().lower()
-
-        con, cursor = get_connection()
-
-        cursor.execute(
-            """
-        SELECT name, mobile_no FROM contacts
-        WHERE LOWER(name) LIKE ?
-        """,
-            ("%" + query + "%",),
-        )
-
-        results = cursor.fetchall()
-        con.close()
-
-        # ✅ Check if contact exists
-        if not results:
-            speak("Contact not found")
-            return 0, 0
-
-        name, mobile_number = results[0]
-
-        mobile_number = str(mobile_number).replace(" ", "").replace("-", "")
-
-        # ✅ Add country code if missing
-        if not mobile_number.startswith("+91"):
-            mobile_number = "+91" + mobile_number
-
-        return mobile_number, name
+    except KeyboardInterrupt:
+        print("\n🛑 Stopped by user")
 
     except Exception as e:
-        print("Error:", e)
-        speak("Error finding contact")
-        return 0, 0
+        print(f"❌ Error: {e}")
+
+    finally:
+        # 🔹 Always cleanup
+        print("🧹 Cleaning up resources...")
+        if audio_stream is not None:
+            try:
+                audio_stream.stop_stream()
+            except Exception as e:
+                print(f"Error stopping audio stream: {e}")
+            try:
+                audio_stream.close()
+            except Exception as e:
+                print(f"Error closing audio stream: {e}")
+            except Exception as e:
+                print(f"Error in cleanup: {e}")
+                if paud is not None:
+                    try:
+                        paud.terminate()
+                    except Exception as e:
+                        print(f"Error terminating PyAudio: {e}")
+        if porcupine is not None:
+            try:
+                porcupine.delete()
+            except Exception as e:
+                print(f"Error deleting Porcupine: {e}")
+                print("✅ Cleanup complete")
 
 
 def whatsApp(mobile_no, message, flag, name):
+
+    if not mobile_no:
+        speak("Invalid contact")
+        return
+
+    # 🔹 Decide action
     if flag == "message":
         target_tab = 12
-        jarvis_message = f"Message sent to {name}"
+        krishna_message = f"Message sent successfully to {name}"
 
     elif flag == "call":
         target_tab = 7
         message = ""
-        jarvis_message = f"Calling {name}"
+        krishna_message = f"Calling {name}"
 
-    else:
+    elif flag == "video":
         target_tab = 6
         message = ""
-        jarvis_message = f"Starting video call with {name}"
+        krishna_message = f"Starting video call with {name}"
 
-    # Encode message
+    else:
+        speak("Invalid action")
+        return
+
+    # 🔹 Encode message
     encoded_message = quote(message)
 
-    # WhatsApp URL
+    # 🔹 WhatsApp URL
     whatsapp_url = f"whatsapp://send?phone={mobile_no}&text={encoded_message}"
 
-    # Open WhatsApp
+    # 🔹 Open WhatsApp
     subprocess.run(f'start "" "{whatsapp_url}"', shell=True)
 
-    # Wait for WhatsApp to load
-    time.sleep(8)
+    time.sleep(5)  # wait for WhatsApp to open
 
-    # Navigate using TAB
+    # 🔹 Navigate UI
     for _ in range(target_tab):
-        pyautogui.press("tab")
+        autogui.press("tab")
+        time.sleep(0.1)
 
-    # Press Enter
-    pyautogui.press("enter")
+    autogui.press("enter")
 
-    speak(jarvis_message)
+    speak(krishna_message)
