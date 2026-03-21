@@ -39,70 +39,61 @@ def takeCommand():
 
 
 @eel.expose
-def allCommands():
-    try:
+def allCommands(message=1):
+
+    if message == 1:
         query = takeCommand()
         print(query)
-    except Exception as e:
-        print(f"Error in allCommands: {e}")
-        eel.DisplayMessage(f"Error: {str(e)}")
-        return
-
-    if not query:
-        return
-
-    query = query.lower()
-
+        eel.senderText(query)
+    else:
+        query = message
+        eel.senderText(query)
     try:
-        # 🔹 OPEN COMMAND
         if "open" in query:
             from engine.features import openCommand
 
             openCommand(query)
-
-        # 🔹 YOUTUBE
-        elif "youtube" in query or "play" in query:
+        elif "on youtube" in query:
             from engine.features import PlayYoutube
 
             PlayYoutube(query)
-            speak("Playing on YouTube")
 
-        # 🔹 WHATSAPP (MESSAGE / CALL / VIDEO)
         elif "send message" in query or "phone call" in query or "video call" in query:
-            from engine.features import findContact, whatsApp
+            from engine.features import findContact, whatsApp, makeCall, sendMessage
 
             contact_no, name = findContact(query)
-
             if contact_no != 0:
-                # MESSAGE
-                if "send message" in query:
-                    speak("What message should I send?")
-                    user_message = takeCommand()
+                speak("Which mode you want to use whatsapp or mobile")
+                preferance = takeCommand()
+                print(preferance)
 
-                    if not user_message:
-                        speak("Message not received")
-                        return
+                if "mobile" in preferance:
+                    if "send message" in query or "send sms" in query:
+                        speak("what message to send")
+                        message = takeCommand()
+                        sendMessage(message, contact_no, name)
+                    elif "phone call" in query:
+                        makeCall(name, contact_no)
+                    else:
+                        speak("please try again")
+                elif "whatsapp" in preferance:
+                    message = ""
+                    if "send message" in query:
+                        message = "message"
+                        speak("what message to send")
+                        query = takeCommand()
 
-                    whatsApp(contact_no, user_message, "message", name)
+                    elif "phone call" in query:
+                        message = "call"
+                    else:
+                        message = "video call"
 
-                # CALL
-                elif "phone call" in query:
-                    whatsApp(contact_no, "", "call", name)
+                    whatsApp(contact_no, query, message, name)
 
-                # VIDEO CALL
-                else:
-                    whatsApp(contact_no, "", "video", name)
-
-        # 🔹 UNKNOWN COMMAND
         else:
-            speak("Sorry, I didn't understand that command")
-            eel.ShowHood()
+            from engine.features import geminai
 
-    except ImportError as e:
-        print(f"Import Error: {e}")
-        speak("Required module not found")
-
+            geminai(query)
     except Exception as e:
         print(f"Error: {e}")
-        speak("Something went wrong")
-        eel.ShowHood()
+    eel.ShowHood()
