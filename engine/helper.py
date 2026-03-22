@@ -28,17 +28,17 @@ def extract_yt_term(command):
     return None
 
 
-def remove_words(input_string, words_to_remove):
-    # Convert remove list to set for faster lookup
-    words_to_remove = set(word.lower() for word in words_to_remove)
+def remove_words_advanced(input_string, words_to_remove):
+    if not input_string:
+        return ""
 
-    # Remove punctuation
-    input_string = re.sub(r"[^\w\s]", "", input_string)
+    remove_set = {w.lower() for w in words_to_remove}
 
-    # Split into words
-    words = input_string.split()
+    words = re.findall(r"\b\w+\b", input_string)
 
-    # Filter words
-    filtered_words = [word for word in words if word.lower() not in words_to_remove]
+    result = []
+    for word in words:
+        if word.lower() not in remove_set:
+            result.append(word)
 
-    return " ".join(filtered_words).strip()
+    return " ".join(result)

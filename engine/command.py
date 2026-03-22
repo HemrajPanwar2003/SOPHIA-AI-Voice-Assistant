@@ -40,67 +40,76 @@ def takeCommand():
 
 @eel.expose
 def allCommands():
-    try:
-        query = takeCommand()
-        print(query)
-    except Exception as e:
-        print(f"Error in allCommands: {e}")
-        eel.DisplayMessage(f"Error: {str(e)}")
-        return
-
-    if not query:
-        return
-
-    query = query.lower()
-
-    if "open" in query:
-        from engine.features import openCommand
-
-        openCommand(query)
-
-    elif "youtube" in query or "play" in query:
+    while True:  # 🔁 Always running
         try:
-            from engine.features import PlayYoutube
+            query = takeCommand()
 
-            PlayYoutube(query)
-            speak("Playing on YouTube")
+            if not query:
+                continue
+
+            query = query.lower().strip()
+            print(query)
+
         except Exception as e:
-            print(f"Error playing YouTube: {e}")
-            speak("Could not play on YouTube")
+            print(f"❌ Error taking command: {e}")
+            eel.DisplayMessage("Mic error, retrying...")
+            continue  # 🔁 restart loop
 
-    elif any(
-        phrase in query.lower()
-        for phrase in ["send message", "phone call", "video call"]
-    ):
         try:
-            from engine.features import findContact, whatsApp
+            # ================= OPEN =================
+            if "open" in query:
+                from engine.features import openCommand
 
-            contact_no, name = findContact(query)
+                openCommand(query)
 
-            if contact_no == 0:
-                speak("Sorry, I couldn't find that contact in your phone.")
-            else:
-                if "send message" in query.lower():
-                    speak("What message would you like to send?")
-                    message_content = takeCommand().strip()
+            # ================= YOUTUBE =================
+            elif "youtube" in query or "play" in query:
+                from engine.features import PlayYoutube
+
+                PlayYoutube(query)
+                speak("Playing on YouTube")
+
+            # ================= WHATSAPP =================
+            elif any(
+                phrase in query
+                for phrase in ["send message", "phone call", "video call"]
+            ):
+                from engine.features import findContact, whatsApp
+
+                contact_no, name = findContact(query)
+
+                if contact_no == 0:
+                    speak("Sorry, I couldn't find that contact.")
+                    continue
+
+                # 🔹 SEND MESSAGE
+                if "send message" in query:
+                    speak("What message should I send?")
+                    message_content = takeCommand()
+
                     if message_content:
                         whatsApp(contact_no, message_content, "message", name)
-                        speak(f"Message sent to {name}")
                     else:
                         speak("No message provided")
 
-                elif "phone call" in query.lower():
-                    speak(f"Calling {name}...")
-                    whatsApp(contact_no, query, "call", name)
+                # 🔹 CALL
+                elif "phone call" in query:
+                    speak(f"Calling {name}")
+                    whatsApp(contact_no, "", "call", name)
 
-                elif "video call" in query.lower():
-                    speak(f"Starting video call with {name}...")
-                    whatsApp(contact_no, query, "video call", name)
+                # 🔹 VIDEO CALL (FIXED FLAG)
+                elif "video call" in query:
+                    speak(f"Starting video call with {name}")
+                    whatsApp(contact_no, "", "video", name)
 
-        except ImportError:
-            speak("Required modules not found")
+            # ================= DEFAULT =================
+            else:
+                speak("I didn't understand that command")
+
         except Exception as e:
-            speak("Sorry, there was an error processing your request")
-            print(f"Error: {e}")
+            print(f"⚠️ Error processing command: {e}")
+            speak("Something went wrong, retrying...")
+            continue  # 🔁 restart safely
 
-    eel.ShowHood()
+
+eel.ShowHood()

@@ -94,98 +94,111 @@ def PlayYoutube(query):
         return False
 
 
+# ================= HOTWORD =================
 def hotword():
-    porcupine = None
-    paud = None
-    audio_stream = None
+    while True:  # 🔁 Auto-restart loop
+        porcupine = None
+        paud = None
+        audio_stream = None
 
-    try:
-        # 🔹 Initialize Porcupine
-        porcupine = pvporcupine.create(keywords=["krishna", "alexa"])
+        try:
+            print("🎤 Starting hotword detection...")
 
-        # 🔹 Initialize PyAudio
-        paud = pyaudio.PyAudio()
-        audio_stream = paud.open(
-            rate=porcupine.sample_rate,
-            channels=1,
-            format=pyaudio.paInt16,
-            input=True,
-            frames_per_buffer=porcupine.frame_length,
-        )
-        # 🔹 Continuous Listening Loop
-        while True:
-            try:
-                pcm = audio_stream.read(
-                    porcupine.frame_length, exception_on_overflow=False
-                )
-                pcm = struct.unpack_from("h" * porcupine.frame_length, pcm)
+            # 🔹 Initialize Porcupine
+            porcupine = pvporcupine.create(keywords=["krishna", "alexa"])
 
-                keyword_index = porcupine.process(pcm)
+            # 🔹 Initialize PyAudio
+            paud = pyaudio.PyAudio()
+            audio_stream = paud.open(
+                rate=porcupine.sample_rate,
+                channels=1,
+                format=pyaudio.paInt16,
+                input=True,
+                frames_per_buffer=porcupine.frame_length,
+            )
 
-                if keyword_index >= 0:
-                    print("🔥 Hotword detected!")
+            last_trigger_time = 0  # ⏱ cooldown
 
-                    # 🔹 Trigger shortcut (Win + J)
-                    autogui.keyDown("win")
-                    autogui.press("j")
-                    autogui.keyUp("win")
+            while True:
+                try:
+                    pcm = audio_stream.read(
+                        porcupine.frame_length,
+                        exception_on_overflow=False,
+                    )
+                    pcm = struct.unpack_from("h" * porcupine.frame_length, pcm)
 
-                    time.sleep(1)
+                    keyword_index = porcupine.process(pcm)
 
-            except Exception as e:
-                print(f"⚠️ Audio read error: {e}")
+                    if keyword_index >= 0:
+                        current_time = time.time()
 
-    except KeyboardInterrupt:
-        print("\n🛑 Stopped by user")
+                        # 🔹 Cooldown (2 sec)
+                        if current_time - last_trigger_time > 2:
+                            print("🔥 Hotword detected!")
 
-    except Exception as e:
-        print(f"❌ Error: {e}")
+                            autogui.keyDown("win")
+                            autogui.press("j")
+                            autogui.keyUp("win")
 
-    finally:
-        # 🔹 Always cleanup
-        print("🧹 Cleaning up resources...")
-        if audio_stream is not None:
-            try:
-                audio_stream.stop_stream()
-            except Exception as e:
-                print(f"Error stopping audio stream: {e}")
-            try:
-                audio_stream.close()
-            except Exception as e:
-                print(f"Error closing audio stream: {e}")
-            except Exception as e:
-                print(f"Error in cleanup: {e}")
-                if paud is not None:
-                    try:
-                        paud.terminate()
-                    except Exception as e:
-                        print(f"Error terminating PyAudio: {e}")
-        if porcupine is not None:
-            try:
-                porcupine.delete()
-            except Exception as e:
-                print(f"Error deleting Porcupine: {e}")
-                print("✅ Cleanup complete")
+                            last_trigger_time = current_time
+
+                    time.sleep(0.01)  # 🔹 reduce CPU
+
+                except Exception as e:
+                    print(f"⚠️ Audio error: {e}")
+                    break  # 🔁 restart loop
+
+        except KeyboardInterrupt:
+            print("\n🛑 Stopped by user")
+            break
+
+        except Exception as e:
+            print(f"❌ Error: {e}")
+
+        finally:
+            print("🧹 Cleaning up resources...")
+
+            if audio_stream is not None:
+                try:
+                    audio_stream.stop_stream()
+                except Exception:
+                    pass
+                try:
+                    audio_stream.close()
+                except Exception:
+                    pass
+
+            if paud is not None:
+                try:
+                    paud.terminate()
+                except Exception:
+                    pass
+
+            if porcupine is not None:
+                try:
+                    porcupine.delete()
+                except Exception:
+                    pass
+
+            print("✅ Cleanup complete. Restarting...\n")
+            time.sleep(2)
 
 
+# ================= WHATSAPP =================
 def whatsApp(mobile_no, message, flag, name):
 
     if not mobile_no:
         speak("Invalid contact")
         return
 
-    # 🔹 Decide action
     if flag == "message":
-        target_tab = 12
         krishna_message = f"Message sent successfully to {name}"
 
     elif flag == "call":
-        target_tab = 7
         message = ""
         krishna_message = f"Calling {name}"
 
     elif flag == "video":
-        target_tab = 6
         message = ""
         krishna_message = f"Starting video call with {name}"
 
@@ -202,13 +215,10 @@ def whatsApp(mobile_no, message, flag, name):
     # 🔹 Open WhatsApp
     subprocess.run(f'start "" "{whatsapp_url}"', shell=True)
 
-    time.sleep(5)  # wait for WhatsApp to open
+    time.sleep(7)  # ⏳ wait properly
 
-    # 🔹 Navigate UI
-    for _ in range(target_tab):
-        autogui.press("tab")
-        time.sleep(0.1)
-
-    autogui.press("enter")
+    # 🔹 Send message directly
+    if flag == "message":
+        autogui.press("enter")
 
     speak(krishna_message)
