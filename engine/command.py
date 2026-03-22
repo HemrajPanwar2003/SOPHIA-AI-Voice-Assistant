@@ -11,6 +11,7 @@ def speak(text):
     engine.setProperty("rate", 174)
     eel.DisplayMessage(text)
     engine.say(text)
+    eel.receiverText(text)
     engine.runAndWait()
 
 
@@ -39,77 +40,72 @@ def takeCommand():
 
 
 @eel.expose
-def allCommands():
-    while True:  # 🔁 Always running
-        try:
+def allCommands(message=1):
+
+    try:
+        # 🔹 TEXT INPUT
+        if message != 1:
+            query = message.lower().strip()
+            print(query)
+            eel.senderText(query)
+
+        # 🔹 VOICE INPUT (single run only)
+        else:
             query = takeCommand()
-
             if not query:
-                continue
-
+                return
             query = query.lower().strip()
             print(query)
+            eel.senderText(query)
 
-        except Exception as e:
-            print(f"❌ Error taking command: {e}")
-            eel.DisplayMessage("Mic error, retrying...")
-            continue  # 🔁 restart loop
+        # ================= OPEN =================
+        if "open" in query:
+            from engine.features import openCommand
 
-        try:
-            # ================= OPEN =================
-            if "open" in query:
-                from engine.features import openCommand
+            openCommand(query)
 
-                openCommand(query)
+        # ================= YOUTUBE =================
+        elif "youtube" in query or "play" in query:
+            from engine.features import PlayYoutube
 
-            # ================= YOUTUBE =================
-            elif "youtube" in query or "play" in query:
-                from engine.features import PlayYoutube
+            PlayYoutube(query)
+            speak("Playing on YouTube")
 
-                PlayYoutube(query)
-                speak("Playing on YouTube")
+        # ================= WHATSAPP =================
+        elif any(
+            phrase in query for phrase in ["send message", "phone call", "video call"]
+        ):
+            from engine.features import findContact, whatsApp
 
-            # ================= WHATSAPP =================
-            elif any(
-                phrase in query
-                for phrase in ["send message", "phone call", "video call"]
-            ):
-                from engine.features import findContact, whatsApp
+            contact_no, name = findContact(query)
 
-                contact_no, name = findContact(query)
+            if contact_no == 0:
+                speak("Sorry, I couldn't find that contact.")
+                return
 
-                if contact_no == 0:
-                    speak("Sorry, I couldn't find that contact.")
-                    continue
+            if "send message" in query:
+                speak("What message should I send?")
+                message_content = takeCommand()
 
-                # 🔹 SEND MESSAGE
-                if "send message" in query:
-                    speak("What message should I send?")
-                    message_content = takeCommand()
+                if message_content:
+                    whatsApp(contact_no, message_content, "message", name)
+                else:
+                    speak("No message provided")
 
-                    if message_content:
-                        whatsApp(contact_no, message_content, "message", name)
-                    else:
-                        speak("No message provided")
+            elif "phone call" in query:
+                speak(f"Calling {name}")
+                whatsApp(contact_no, "", "call", name)
 
-                # 🔹 CALL
-                elif "phone call" in query:
-                    speak(f"Calling {name}")
-                    whatsApp(contact_no, "", "call", name)
+            elif "video call" in query:
+                speak(f"Starting video call with {name}")
+                whatsApp(contact_no, "", "video", name)
 
-                # 🔹 VIDEO CALL (FIXED FLAG)
-                elif "video call" in query:
-                    speak(f"Starting video call with {name}")
-                    whatsApp(contact_no, "", "video", name)
+        # ================= DEFAULT =================
+        else:
+            speak("I didn't understand that command")
 
-            # ================= DEFAULT =================
-            else:
-                speak("I didn't understand that command")
+        eel.ShowHood()
 
-        except Exception as e:
-            print(f"⚠️ Error processing command: {e}")
-            speak("Something went wrong, retrying...")
-            continue  # 🔁 restart safely
-
-
-eel.ShowHood()
+    except Exception as e:
+        print(f"⚠️ Error: {e}")
+        speak("Something went wrong")

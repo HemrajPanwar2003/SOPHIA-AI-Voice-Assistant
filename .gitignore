@@ -1,1 +1,5 @@
-envKrishna/
+/envKrishna
+contacts.csv
+krishna.db
+/engine/__pycache__
+/engine/cookies.json

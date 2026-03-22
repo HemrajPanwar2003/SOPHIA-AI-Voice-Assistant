@@ -15,4 +15,38 @@ $(Document).ready(function(){
        $("#SiriWave").attr("hidden", true);
     }
 
+eel.expose(senderText)
+function senderText(message) {
+    const chatBox = document.getElementById("chat-canvas-body");
+
+    if (!message || message.trim() === "") return;
+
+    const msgDiv = document.createElement("div");
+    msgDiv.className = "message sender_message";
+    msgDiv.textContent = message; // ✅ safe (prevents HTML injection)
+
+    chatBox.appendChild(msgDiv);
+
+    // Auto scroll
+    chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+
+eel.expose(receiverText)
+function receiverText(message) {
+    const chatBox = document.getElementById("chat-canvas-body");
+
+    if (!message || message.trim() === "") return;
+
+    const msgDiv = document.createElement("div");
+    msgDiv.className = "message receiver_message";
+    msgDiv.textContent = message;
+
+    chatBox.appendChild(msgDiv);
+
+    // Auto scroll
+    chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+
 });

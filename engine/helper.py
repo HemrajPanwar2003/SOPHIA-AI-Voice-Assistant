@@ -28,17 +28,43 @@ def extract_yt_term(command):
     return None
 
 
-def remove_words_advanced(input_string, words_to_remove):
-    if not input_string:
-        return ""
+def remove_words(input_string, words_to_remove):
+    try:
+        if not input_string:
+            return ""
 
-    remove_set = {w.lower() for w in words_to_remove}
+        # 🔹 Normalize input
+        text = input_string.lower().strip()
 
-    words = re.findall(r"\b\w+\b", input_string)
+        # 🔹 Remove punctuation
+        text = re.sub(r"[^\w\s]", " ", text)
 
-    result = []
-    for word in words:
-        if word.lower() not in remove_set:
-            result.append(word)
+        # 🔹 Normalize spaces
+        text = re.sub(r"\s+", " ", text)
 
-    return " ".join(result)
+        # 🔹 Separate single words & phrases
+        single_words = set()
+        phrases = []
+
+        for word in words_to_remove:
+            if not word:
+                continue
+            word = word.lower().strip()
+            if " " in word:
+                phrases.append(word)
+            else:
+                single_words.add(word)
+
+        # 🔹 Remove phrases first (important!)
+        for phrase in phrases:
+            text = text.replace(phrase, "")
+
+        # 🔹 Remove single words
+        words = text.split()
+        filtered_words = [w for w in words if w not in single_words]
+
+        return " ".join(filtered_words).strip()
+
+    except Exception as e:
+        print(f"❌ Error in remove_words: {e}")
+        return input_string

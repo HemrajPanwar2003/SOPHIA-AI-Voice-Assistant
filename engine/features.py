@@ -94,97 +94,68 @@ def PlayYoutube(query):
         return False
 
 
-# ================= HOTWORD =================
 def hotword():
-    while True:  # 🔁 Auto-restart loop
-        porcupine = None
-        paud = None
-        audio_stream = None
+    porcupine = None
+    paud = None
+    audio_stream = None
 
-        try:
-            print("🎤 Starting hotword detection...")
+    try:
+        print("🎤 Starting hotword detection...")
 
-            # 🔹 Initialize Porcupine
-            porcupine = pvporcupine.create(keywords=["krishna", "alexa"])
+        porcupine = pvporcupine.create(keywords=["krishna", "alexa"])
 
-            # 🔹 Initialize PyAudio
-            paud = pyaudio.PyAudio()
-            audio_stream = paud.open(
-                rate=porcupine.sample_rate,
-                channels=1,
-                format=pyaudio.paInt16,
-                input=True,
-                frames_per_buffer=porcupine.frame_length,
+        paud = pyaudio.PyAudio()
+        audio_stream = paud.open(
+            rate=porcupine.sample_rate,
+            channels=1,
+            format=pyaudio.paInt16,
+            input=True,
+            frames_per_buffer=porcupine.frame_length,
+        )
+
+        last_trigger_time = 0
+
+        while True:
+            pcm = audio_stream.read(
+                porcupine.frame_length,
+                exception_on_overflow=False,
             )
+            pcm = struct.unpack_from("h" * porcupine.frame_length, pcm)
 
-            last_trigger_time = 0  # ⏱ cooldown
+            keyword_index = porcupine.process(pcm)
 
-            while True:
-                try:
-                    pcm = audio_stream.read(
-                        porcupine.frame_length,
-                        exception_on_overflow=False,
-                    )
-                    pcm = struct.unpack_from("h" * porcupine.frame_length, pcm)
+            if keyword_index >= 0:
+                current_time = time.time()
 
-                    keyword_index = porcupine.process(pcm)
+                # 🔹 Cooldown (1.5 sec)
+                if current_time - last_trigger_time > 1.5:
+                    print("🔥 Hotword detected!")
 
-                    if keyword_index >= 0:
-                        current_time = time.time()
+                    autogui.keyDown("win")
+                    autogui.press("j")
+                    autogui.keyUp("win")
 
-                        # 🔹 Cooldown (2 sec)
-                        if current_time - last_trigger_time > 2:
-                            print("🔥 Hotword detected!")
+                    last_trigger_time = current_time
 
-                            autogui.keyDown("win")
-                            autogui.press("j")
-                            autogui.keyUp("win")
+    except Exception as e:
+        print(f"❌ Error: {e}")
 
-                            last_trigger_time = current_time
+    finally:
+        print("🧹 Cleaning up...")
 
-                    time.sleep(0.01)  # 🔹 reduce CPU
+        if audio_stream:
+            audio_stream.stop_stream()
+            audio_stream.close()
 
-                except Exception as e:
-                    print(f"⚠️ Audio error: {e}")
-                    break  # 🔁 restart loop
+        if paud:
+            paud.terminate()
 
-        except KeyboardInterrupt:
-            print("\n🛑 Stopped by user")
-            break
+        if porcupine:
+            porcupine.delete()
 
-        except Exception as e:
-            print(f"❌ Error: {e}")
-
-        finally:
-            print("🧹 Cleaning up resources...")
-
-            if audio_stream is not None:
-                try:
-                    audio_stream.stop_stream()
-                except Exception:
-                    pass
-                try:
-                    audio_stream.close()
-                except Exception:
-                    pass
-
-            if paud is not None:
-                try:
-                    paud.terminate()
-                except Exception:
-                    pass
-
-            if porcupine is not None:
-                try:
-                    porcupine.delete()
-                except Exception:
-                    pass
-
-            print("✅ Cleanup complete. Restarting...\n")
-            time.sleep(2)
+        print("✅ Cleanup done")
 
 
-# ================= WHATSAPP =================
 def whatsApp(mobile_no, message, flag, name):
 
     if not mobile_no:
@@ -192,32 +163,26 @@ def whatsApp(mobile_no, message, flag, name):
         return
 
     if flag == "message":
-        krishna_message = f"Message sent successfully to {name}"
-
+        krishna_message = f"Message sent to {name}"
     elif flag == "call":
         message = ""
         krishna_message = f"Calling {name}"
-
     elif flag == "video":
         message = ""
         krishna_message = f"Starting video call with {name}"
-
     else:
         speak("Invalid action")
         return
 
-    # 🔹 Encode message
     encoded_message = quote(message)
-
-    # 🔹 WhatsApp URL
     whatsapp_url = f"whatsapp://send?phone={mobile_no}&text={encoded_message}"
 
-    # 🔹 Open WhatsApp
-    subprocess.run(f'start "" "{whatsapp_url}"', shell=True)
+    # Open WhatsApp
+    subprocess.Popen(f'start "" "{whatsapp_url}"', shell=True)
 
-    time.sleep(7)  # ⏳ wait properly
+    # 🔹 Smart wait (instead of fixed 7 sec)
+    time.sleep(5)
 
-    # 🔹 Send message directly
     if flag == "message":
         autogui.press("enter")
 

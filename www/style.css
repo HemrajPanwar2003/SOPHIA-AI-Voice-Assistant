@@ -308,3 +308,60 @@ p {
   }
 }
 /**********************Input Box End***************************/
+
+/* Chat Box Start */
+
+.chat-canvas {
+  background-color: #191919;
+  padding: 15px;
+  height: 100%;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Common message style */
+.message {
+  padding: 10px 14px;
+  max-width: 75%;
+  width: fit-content;
+  color: white;
+  font-size: 14px;
+  line-height: 1.4;
+  word-wrap: break-word;
+  display: inline-block;
+}
+
+/* Receiver (Left side) */
+.receiver_message {
+  align-self: flex-start;
+  border: 1px solid cyan;
+  border-radius: 0px 15px 15px 15px;
+  background-color: rgba(13, 202, 240, 0.08);
+}
+
+/* Sender (Right side) */
+.sender_message {
+  align-self: flex-end;
+  border: 1px solid #0045ff;
+  border-radius: 15px 15px 0px 15px;
+  background: linear-gradient(135deg, #0045ff, #0066ff);
+}
+
+/* Optional width control (if still needed) */
+.width-size {
+  max-width: 75%;
+}
+
+/* Scrollbar styling (optional modern UI) */
+.chat-canvas::-webkit-scrollbar {
+  width: 6px;
+}
+
+.chat-canvas::-webkit-scrollbar-thumb {
+  background: #555;
+  border-radius: 10px;
+}
+
+/* Chat Box End */

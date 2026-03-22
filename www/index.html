@@ -42,6 +42,9 @@
                                 <input type="text" class="input-field" name="chatBox" id="chatBox"
                                     placeholder="Type here...">
 
+                                <button id="SendBtn" class="glow-on-hover">
+                                    <i class="bi bi-send"></i>
+                                </button>
                                 <!-- Microphone Button -->
                                 <button id="micBtn" class="glow-on-hover">
                                     <i class="bi bi-mic"></i>
@@ -85,7 +88,17 @@
 
         </section>
     </div>
-
+    <!-- Chat Box -->
+    <div class="offcanvas offcanvas-start chat-canvas" data-bs-scroll="true" data-bs-backdrop="false" tabindex="-1"
+        id="offcanvasScrolling" aria-labelledby="offcanvasScrollingLabel">
+        <div class="offcanvas-header">
+            <h5 class="offcanvas-title text-white" id="offcanvasScrollingLabel">Chats</h5>
+            <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+        </div>
+        <div id="chat-canvas-body" class="offcanvas-body">
+            <!-- Chatting code here -->
+        </div>
+    </div>
 
     <!-- Bootstrap -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"

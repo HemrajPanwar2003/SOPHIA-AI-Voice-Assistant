@@ -58,4 +58,72 @@ $(document).ready(function() {
 
 document.addEventListener('keyup', doc_keyUp, false);
 
+$(document).ready(function () {
+
+    // 🔹 Play Assistant
+    function PlayAssistant(message) {
+        message = message.trim();
+
+        if (message === "") return;
+
+        // Show user message instantly (optional but recommended)
+        senderText(message);
+
+        // UI changes
+        $("#Oval").attr("hidden", true);
+        $("#SiriWave").attr("hidden", false);
+
+        // Send to Python backend
+        eel.allCommands(message);
+
+        // Clear input
+        $("#chatbox").val("");
+
+        // Reset buttons properly
+        ShowHideButton("");
+
+        // Prevent spam clicking
+        $("#SendBtn").prop("disabled", true);
+        setTimeout(() => {
+            $("#SendBtn").prop("disabled", false);
+        }, 500);
+    }
+
+
+    // 🔹 Toggle Mic / Send button
+    function ShowHideButton(message) {
+        message = message.trim();
+
+        if (message.length === 0) {
+            $("#MicBtn").attr("hidden", false);
+            $("#SendBtn").attr("hidden", true);
+        } else {
+            $("#MicBtn").attr("hidden", true);
+            $("#SendBtn").attr("hidden", false);
+        }
+    }
+
+
+    // 🔹 Input typing (better than keyup)
+    $("#chatbox").on("input", function () {
+        ShowHideButton($(this).val());
+    });
+
+
+    // 🔹 Send button click
+    $("#SendBtn").on("click", function () {
+        PlayAssistant($("#chatbox").val());
+    });
+
+
+    // 🔹 Enter key (modern + fixed)
+    $("#chatbox").on("keydown", function (e) {
+        if (e.key === "Enter") {
+            e.preventDefault(); // 🚫 stop newline
+            PlayAssistant($(this).val());
+        }
+    });
+
+});
+
 });
