@@ -58,6 +58,7 @@ $(document).ready(function() {
 
 document.addEventListener('keyup', doc_keyUp, false);
 
+
 $(document).ready(function () {
 
     // 🔹 Play Assistant

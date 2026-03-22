@@ -5,6 +5,7 @@ import eel
 
 
 def speak(text):
+    text = str(text)
     engine = pyttsx3.init("sapi5")
     voices = engine.getProperty("voices")
     engine.setProperty("voice", voices[0].id)
@@ -16,6 +17,7 @@ def speak(text):
 
 
 def takeCommand():
+
     r = sr.Recognizer()
     with sr.Microphone() as source:
         print("Listening...")
@@ -72,37 +74,29 @@ def allCommands(message=1):
             speak("Playing on YouTube")
 
         # ================= WHATSAPP =================
-        elif any(
-            phrase in query for phrase in ["send message", "phone call", "video call"]
-        ):
+        elif "send message" in query or "phone call" in query or "video call" in query:
             from engine.features import findContact, whatsApp
 
+            flag = ""
+
             contact_no, name = findContact(query)
-
-            if contact_no == 0:
-                speak("Sorry, I couldn't find that contact.")
-                return
-
-            if "send message" in query:
-                speak("What message should I send?")
-                message_content = takeCommand()
-
-                if message_content:
-                    whatsApp(contact_no, message_content, "message", name)
+            if contact_no != 0:
+                if "send message" in query:
+                    message = "message"
+                    speak("what message to send")
+                    query = takeCommand()
+                elif "phone call" in query:
+                    flag = "call"
                 else:
-                    speak("No message provided")
+                    flag = "video call"
 
-            elif "phone call" in query:
-                speak(f"Calling {name}")
-                whatsApp(contact_no, "", "call", name)
-
-            elif "video call" in query:
-                speak(f"Starting video call with {name}")
-                whatsApp(contact_no, "", "video", name)
+                whatsApp(contact_no, query, flag, name)
 
         # ================= DEFAULT =================
         else:
-            speak("I didn't understand that command")
+            from engine.features import chatBot
+
+            chatBot(query)
 
         eel.ShowHood()
 

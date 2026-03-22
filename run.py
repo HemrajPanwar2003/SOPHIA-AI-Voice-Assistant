@@ -1,75 +1,34 @@
 import multiprocessing
-import time
-import traceback
 
 
-# ================= PROCESS FUNCTIONS =================
+# To run Krishna
 def startKrishna():
-    while True:
-        try:
-            print("🚀 Krishna process started")
-            from main import start
+    # Code for process 1
+    print("Process 1 is running.")
+    from main import start
 
-            start()
-
-        except Exception as e:
-            print("❌ Krishna crashed:", e)
-            traceback.print_exc()
-            time.sleep(3)  # 🔁 safer delay
+    start()
 
 
+# To run hotword
 def listenHotword():
-    while True:
-        try:
-            print("🎤 Hotword process started")
-            from engine.features import hotword
+    # Code for process 2
+    print("Process 2 is running.")
+    from engine.features import hotword
 
-            hotword()
-
-        except Exception as e:
-            print("❌ Hotword crashed:", e)
-            traceback.print_exc()
-            time.sleep(3)
+    hotword()
 
 
-# ================= MAIN SUPERVISOR =================
-def run_system():
-
-    process_map = {"Krishna": startKrishna, "Hotword": listenHotword}
-
-    processes = {}
-
-    try:
-        # 🔹 Start all processes
-        for name, target in process_map.items():
-            p = multiprocessing.Process(target=target, name=name)
-            p.start()
-            processes[name] = p
-
-        # 🔹 Monitor loop
-        while True:
-            for name, p in list(processes.items()):
-                if not p.is_alive():
-                    print(f"⚠️ {name} died. Restarting...")
-
-                    # 🔹 Restart safely
-                    new_p = multiprocessing.Process(target=process_map[name], name=name)
-                    new_p.start()
-                    processes[name] = new_p
-
-            time.sleep(2)
-
-    except KeyboardInterrupt:
-        print("\n🛑 Shutting down system...")
-
-        for p in processes.values():
-            p.terminate()
-            p.join()
-
-        print("✅ System stopped cleanly")
-
-
-# ================= ENTRY =================
+# Start both processes
 if __name__ == "__main__":
-    multiprocessing.freeze_support()  # ✅ Windows safe
-    run_system()
+    p1 = multiprocessing.Process(target=startKrishna)
+    p2 = multiprocessing.Process(target=listenHotword)
+    p1.start()
+    p2.start()
+    p1.join()
+
+    if p2.is_alive():
+        p2.terminate()
+        p2.join()
+
+    print("system stop")

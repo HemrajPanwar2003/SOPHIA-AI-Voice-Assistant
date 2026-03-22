@@ -1,6 +1,4 @@
-from asyncio import subprocess
 from datetime import time
-from email.quoprimime import quote
 import os
 import sqlite3
 import struct
@@ -9,12 +7,13 @@ from playsound import playsound
 import eel
 import pvporcupine
 import pyaudio
-import pyautogui as autogui
-from engine.command import speak
+import urllib
+from engine.command import speak, takeCommand
 from engine.config import ASSISTANT_NAME
 import pywhatkit as kit
 
 from engine.helper import extract_yt_term
+from hugchat import hugchat
 
 con = sqlite3.connect("Krishna.db")
 cursor = con.cursor()
@@ -98,12 +97,9 @@ def hotword():
     porcupine = None
     paud = None
     audio_stream = None
-
     try:
-        print("🎤 Starting hotword detection...")
-
+        # pre trained keywords
         porcupine = pvporcupine.create(keywords=["krishna", "alexa"])
-
         paud = pyaudio.PyAudio()
         audio_stream = paud.open(
             rate=porcupine.sample_rate,
@@ -113,77 +109,148 @@ def hotword():
             frames_per_buffer=porcupine.frame_length,
         )
 
-        last_trigger_time = 0
-
+        # loop for streaming
         while True:
-            pcm = audio_stream.read(
-                porcupine.frame_length,
-                exception_on_overflow=False,
-            )
-            pcm = struct.unpack_from("h" * porcupine.frame_length, pcm)
+            keyword = audio_stream.read(porcupine.frame_length)
+            keyword = struct.unpack_from("h" * porcupine.frame_length, keyword)
 
-            keyword_index = porcupine.process(pcm)
+            # processing keyword comes from mic
+            keyword_index = porcupine.process(keyword)
 
+            # checking first keyword detetcted for not
             if keyword_index >= 0:
-                current_time = time.time()
+                print("hotword detected")
 
-                # 🔹 Cooldown (1.5 sec)
-                if current_time - last_trigger_time > 1.5:
-                    print("🔥 Hotword detected!")
+                # pressing shorcut key win+j
+                import pyautogui as autogui
 
-                    autogui.keyDown("win")
-                    autogui.press("j")
-                    autogui.keyUp("win")
-
-                    last_trigger_time = current_time
-
-    except Exception as e:
-        print(f"❌ Error: {e}")
-
-    finally:
-        print("🧹 Cleaning up...")
-
-        if audio_stream:
-            audio_stream.stop_stream()
+                autogui.keyDown("win")
+                autogui.press("j")
+                time.sleep(2)
+                autogui.keyUp("win")
+    except:  # noqa: E722
+        if porcupine is not None:
+            porcupine.delete()
+        if audio_stream is not None:
             audio_stream.close()
-
-        if paud:
+        if paud is not None:
             paud.terminate()
 
-        if porcupine:
-            porcupine.delete()
 
-        print("✅ Cleanup done")
+# 🔍 FIND CONTACT
+def findContact(query):
+    words_to_remove = [
+        "send",
+        "message",
+        "make",
+        "call",
+        "phone",
+        "video",
+        "to",
+        "on",
+        "whatsapp",
+    ]
+
+    query = query.lower()
+
+    for word in words_to_remove:
+        query = query.replace(word, "")
+
+    query = query.strip()
+
+    try:
+        cursor.execute(
+            "SELECT name, mobile_no FROM contacts WHERE LOWER(name) LIKE ?",
+            ("%" + query + "%",),
+        )
+        result = cursor.fetchone()
+
+        if result:
+            name, number = result
+            return number, name
+
+        else:
+            return 0, 0
+
+    except Exception as e:
+        print("Database Error:", e)
+        return 0, 0
 
 
-def whatsApp(mobile_no, message, flag, name):
+# 📲 WHATSAPP FUNCTION
+def whatsApp(contact_no, message, flag, name):
+    try:
+        encoded_message = urllib.parse.quote(message)
 
-    if not mobile_no:
-        speak("Invalid contact")
-        return
+        if flag == "message":
+            speak(f"Sending message to {name}")
+            url = f"https:whatsapp.com//wa.me/{contact_no}?text={encoded_message}"
+            webbrowser.open(url)
 
-    if flag == "message":
-        krishna_message = f"Message sent to {name}"
-    elif flag == "call":
-        message = ""
-        krishna_message = f"Calling {name}"
-    elif flag == "video":
-        message = ""
-        krishna_message = f"Starting video call with {name}"
+        elif flag == "call":
+            speak(f"Calling {name}")
+            url = f"https:whatsapp.com//wa.me/{contact_no}"
+            webbrowser.open(url)
+
+        elif flag == "video call":
+            speak(f"Starting video call with {name}")
+            url = f"https:whatsapp.com//wa.me/{contact_no}"
+            webbrowser.open(url)
+
+        else:
+            speak("Invalid action")
+
+    except Exception as e:
+        print("WhatsApp Error:", e)
+        speak("Something went wrong")
+
+
+# 🎯 MAIN HANDLER FUNCTION
+def handleCommunication(query):
+    contact_no, name = findContact(query)
+
+    if contact_no != 0:
+        flag = None
+        message_text = ""
+
+        # 📩 MESSAGE
+        if "send message" in query:
+            flag = "message"
+
+            # Try extracting message directly
+            message_text = query.replace("send message", "").strip()
+
+            if not message_text:
+                speak("What message should I send?")
+                message_text = takeCommand()
+
+            if not message_text:
+                speak("Message not received")
+                return
+
+        # 📞 CALL
+        elif "phone call" in query:
+            flag = "call"
+
+        # 🎥 VIDEO CALL
+        elif "video call" in query:
+            flag = "video call"
+
+        # 🚀 EXECUTE
+        whatsApp(contact_no, message_text, flag, name)
+
     else:
-        speak("Invalid action")
-        return
+        speak("Contact not found")
 
-    encoded_message = quote(message)
-    whatsapp_url = f"whatsapp://send?phone={mobile_no}&text={encoded_message}"
+    # chat bot
 
-    # Open WhatsApp
-    subprocess.Popen(f'start "" "{whatsapp_url}"', shell=True)
 
-    # 🔹 Smart wait (instead of fixed 7 sec)
-    time.sleep(5)
-
-    if flag == "message":
-        autogui.press("enter")
-
-    speak(krishna_message)
+def chatBot(query):
+    user_input = query.lower()
+    chatbot = hugchat.ChatBot(cookie_path="engine\cookies.json")
+    id = chatbot.new_conversation()
+    chatbot.change_conversation(id)
+    response = chatbot.chat(user_input)
+    print(response)
+    speak(response)
+    return response
