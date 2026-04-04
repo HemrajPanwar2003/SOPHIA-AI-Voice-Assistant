@@ -97,8 +97,7 @@ def allCommands(message=1):
             from engine.features import chatBot
 
             chatBot(query)
-
-        eel.ShowHood()
+            eel.ShowHood()
 
     except Exception as e:
         print(f"⚠️ Error: {e}")
